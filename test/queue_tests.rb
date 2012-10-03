@@ -1,11 +1,37 @@
+module RedisThreadRacingTests
+
+  def test_thread_racing_memoization
+    threads = 25.times.collect do
+      Thread.new(queue) { |q| Thread.current[:redis] = q.redis }
+    end
+    threads.map(&:join)
+    assert_equal 1, threads.collect { |t| t[:redis].object_id }.uniq.size
+  end
+
+end
+
 module SizedQueueTests
 
   def test_max_reader
     assert_equal 2, queue.max
   end
 
-  # test max
-  # test assigning max
+  def test_max_writer
+    queue.max = 15
+    assert_equal 15, queue.max
+  end
+
+  def test_push_when_full_will_block
+    queue.max = 1
+    queue.push(:something)
+    t1 = Thread.new(queue) do |q|
+      q.push(:something_else)
+    end
+    Thread.new { sleep 0.1 }.join
+    assert 1, queue.num_waiting
+  ensure
+    t1.kill
+  end
 
 end
 
@@ -64,10 +90,14 @@ module QueueTests
     t_pop = Thread.new(queue) do |q|
       q.pop
     end
-    Thread.new { sleep 0.1 }.join
+    Thread.new { sleep 0.5 }.join
     assert_equal 1, queue.num_waiting
   ensure
     t_pop.kill
+  end
+
+  def test_pop_no_block
+    skip "Not Implemented Yet"
   end
 
   def test_that_pop_should_block_when_the_queue_is_empty_increasing_num_waiting_by_two
@@ -77,7 +107,7 @@ module QueueTests
     t2_pop = Thread.new(queue) do |q|
       q.pop
     end
-    Thread.new { sleep 0.1 }.join
+    Thread.new { sleep 0.5 }.join
     assert_equal 2, queue.num_waiting
   ensure
     [t1_pop, t2_pop].map(&:kill)

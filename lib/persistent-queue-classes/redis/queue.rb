@@ -12,7 +12,7 @@ module PersistentQueueClasses
 
     class Queue
 
-      attr_reader :options, :redis
+      include PersistentQueueClasses::SharedQueueBehaviour
 
       def initialize(options={})
         @options = default_options.merge(options)
@@ -31,8 +31,8 @@ module PersistentQueueClasses
         (redis.get(options[:waiting_key_name]) || 0).to_i
       end
 
-      def push(object)
-        redis.rpush options[:queue_key_name], Base64.encode64(Marshal.dump(object))
+      def push(object, non_blocking=false)
+        redis.rpush options[:queue_key_name], encode_object(object)
       end
       alias :enq :push
       alias :<< :push
@@ -40,7 +40,7 @@ module PersistentQueueClasses
       def pop
         redis.incr options[:waiting_key_name]
         key, object = bredis.blpop(options[:queue_key_name])
-        Marshal.load(Base64.decode64(object))
+        decode_object(object)
       ensure
         redis.decr options[:waiting_key_name]
         clear if empty?
@@ -56,8 +56,6 @@ module PersistentQueueClasses
         return []
       end
 
-      private
-
       def redis
         @redis ||= begin
           ::Redis.new(options).tap do |r|
@@ -65,6 +63,8 @@ module PersistentQueueClasses
           end
         end
       end
+
+      private
 
       def bredis
         @bredis ||= ::Redis.new(options)

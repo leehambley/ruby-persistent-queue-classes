@@ -33,6 +33,7 @@ module PersistentQueueClasses
 
       include QueueTests
       include RedisQueueTests
+      include RedisThreadRacingTests
 
       private
 
@@ -46,7 +47,7 @@ module PersistentQueueClasses
 
       include QueueTests
       include SizedQueueTests
-      include RedisQueueTests
+      include RedisThreadRacingTests
 
       private
 

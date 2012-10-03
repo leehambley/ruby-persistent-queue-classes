@@ -6,7 +6,7 @@ module PersistentQueueClasses
 
     class QueueTest < MiniTest::Unit::TestCase
 
-      #include QueueTests
+      include QueueTests
 
       private
 

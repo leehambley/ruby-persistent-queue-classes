@@ -71,6 +71,15 @@ The queue classes rely on atomic operations from the underlying data stores,
 and as such are relatively simple to implement in Ruby land, the backends
 however must support atomic read/write operations.
 
+## Sharing Queues Between Threads
+
+The queues memoize their internal connection/collection variables, etc - in
+certain race situations these can cause problems, because of that we use the
+`MonitorMixin` from Ruby 1.9 to synchonrize memoization between threads.
+
+Here's an example
+
+
 ## Collection Naming
 
 ### Redis

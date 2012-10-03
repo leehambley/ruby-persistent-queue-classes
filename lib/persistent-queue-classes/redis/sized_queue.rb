@@ -13,6 +13,14 @@ module PersistentQueueClasses
         super default_options.merge(options)
       end
 
+      def push(obj)
+        redis.incr options[:waiting_key_name]
+        Thread.pass until length < max if length == max
+        bredis.rpush options[:queue_key_name], encode_object(obj)
+      ensure
+        redis.decr options[:waiting_key_name]
+      end
+
     end
 
   end
